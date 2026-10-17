@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 const $=id=>document.getElementById(id);
-const state={height:1,density:1,width:1,curve:0.5,variation:0.5,hue:0,saturation:1,brightness:1,roughness:.96,wind:.18,speed:1,direction:35,gust:0.35,turbulence:0.35,waveScale:1.0,audioGain:0,windColor:0.3,tiles:1,seed:20261017};
+const state={height:1,density:1,width:1,curve:0.5,variation:0.5,hue:0,saturation:1,brightness:1,roughness:.96,wind:.18,speed:1,direction:35,gust:0.35,turbulence:0.35,waveScale:1.0,audioGain:0,windColor:0.3,tiles:1,seed:20261017,directionVariation:45,speedVariation:35,changeInterval:6,smoothness:80,windSeed:16101};
 const defaults={...state};
-const ranges={height:[.45,2.3],density:[.1,1],width:[.4,2.5],curve:[0,1],variation:[0,1],hue:[-150,150],saturation:[0,2],brightness:[.3,1.7],roughness:[.2,1],wind:[0,.6],speed:[0,3],direction:[0,360],gust:[0,1],turbulence:[0,1],waveScale:[0.2,3],audioGain:[0,2],windColor:[0,1],tiles:[1,9],seed:[1,999999999]};
-const names=Object.keys(state).filter(k=>k!=='seed');
+const ranges={height:[.45,2.3],density:[.1,1],width:[.4,2.5],curve:[0,1],variation:[0,1],hue:[-150,150],saturation:[0,2],brightness:[.3,1.7],roughness:[.2,1],wind:[0,.6],speed:[0,3],direction:[0,360],gust:[0,1],turbulence:[0,1],waveScale:[0.2,3],audioGain:[0,2],windColor:[0,1],tiles:[1,9],seed:[1,999999999],directionVariation:[0,180],speedVariation:[0,100],changeInterval:[1,30],smoothness:[0,100],windSeed:[1,999999999]};
+const names=Object.keys(state).filter(k=>!['seed','windSeed'].includes(k));
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;$('app').appendChild(renderer.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xb9d8ff);scene.fog=new THREE.Fog(0xb9d8ff,15,65);
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,200);camera.position.set(6,4.5,7);
@@ -14,9 +14,41 @@ scene.add(new THREE.HemisphereLight(0xffffff,0x73935e,1.35));const sunlight=new 
 let tilesRoot=new THREE.Group();scene.add(tilesRoot);let tileSource=null;let shaders=[];let materials=[];let meshCount=0;const clock=new THREE.Clock();
 let audioLevel=0, audioContext=null, audioStream=null, analyser=null, audioData=null;
 let micEnabled=false;
+let windStartTime=0;
 const palette=['#497c35','#528a39','#5b9241','#659b43','#76a64c','#83a951'].map(c=>new THREE.Color(c));
 const groundColor=new THREE.Color('#37692e');
 function randGen(seed){let n=seed>>>0;return ()=>{n=(1664525*n+1013904223)>>>0;return n/4294967296;};}
+// Stateless seeded stochastic wind: the same seed, parameters and elapsed time
+// reproduce the same wind changes (apart from external audio input).
+function hash01(seed, index, channel) {
+ let x = (Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(seed | 0, 0x85ebca6b) ^ Math.imul(channel + 1, 0xc2b2ae35)) >>> 0;
+ x ^= x >>> 16; x = Math.imul(x, 0x7feb352d) >>> 0;
+ x ^= x >>> 15; x = Math.imul(x, 0x846ca68b) >>> 0;
+ x ^= x >>> 16;
+ return x / 4294967296;
+}
+function sampledWind(t) {
+ const period = Math.max(1, state.changeInterval);
+ const step = Math.floor(t / period);
+ const f = (t / period) - step;
+ // A cosine interpolation prevents abrupt jumps and keeps continuous derivatives.
+ const curved = f * f * (3 - 2 * f);
+ // SMOOTHNESS moves between linear and ease-in-out interpolation.
+ const mix = THREE.MathUtils.lerp(f, curved, state.smoothness / 100);
+ const directionOffset = THREE.MathUtils.lerp(
+  2 * hash01(state.windSeed, step, 0) - 1,
+  2 * hash01(state.windSeed, step + 1, 0) - 1, mix
+ ) * state.directionVariation;
+ const speedOffset = THREE.MathUtils.lerp(
+  2 * hash01(state.windSeed, step, 1) - 1,
+  2 * hash01(state.windSeed, step + 1, 1) - 1, mix
+ ) * state.speedVariation / 100;
+ return {
+  directionDegrees: ((state.direction + directionOffset) % 360 + 360) % 360,
+  directionOffset,
+  speedScale: Math.max(0, 1 + speedOffset)
+ };
+}
 function updateLabels(){for(const key of names){const node=$(key);if(node) node.value=state[key];const value=$(key+'Val');if(value)value.textContent=key==='hue'?String(Math.round(state[key])):Number(state[key]).toFixed(2);} }
 function paintMaterials(){for(let i=0;i<materials.length;i++){let m=materials[i];const base=palette[i];const hsl={};base.getHSL(hsl);m.color.setHSL((hsl.h+state.hue/360+1)%1,THREE.MathUtils.clamp(hsl.s*state.saturation,0,1),THREE.MathUtils.clamp(hsl.l*state.brightness,.02,.9));m.roughness=state.roughness;} }
 function windMaterial(i){
@@ -91,19 +123,25 @@ function rebuildTiles(){tilesRoot.clear();if(!tileSource)return;const count=Math
 let pending=null;function scheduleRebuild(){clearTimeout(pending);$('msg').textContent='形状を更新中…';pending=setTimeout(regenerate,150);}
 for(const name of names){const el=$(name);if(!el)continue;el.addEventListener('input',()=>{state[name]=THREE.MathUtils.clamp(Number(el.value),...ranges[name]);updateLabels();if(['height','density','width','curve','variation'].includes(name))scheduleRebuild();else if(['hue','saturation','brightness','roughness'].includes(name))paintMaterials();else if(name==='tiles')rebuildTiles();});}
 $('rebuild').addEventListener('click',regenerate);
-function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.0',tileSizeMeters:4,parameters:{...state},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
+$('windSeed').addEventListener('change', e => {state.windSeed = THREE.MathUtils.clamp(Math.floor(Number(e.target.value)||1),...ranges.windSeed);e.target.value=state.windSeed;windStartTime=clock.getElapsedTime();});
+$('newWindSeed').addEventListener('click',()=>{state.windSeed=1+Math.floor(Math.random()*999999998);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();});
+$('restartWind').addEventListener('click',()=>{windStartTime=clock.getElapsedTime();});
+
+function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.1',tileSizeMeters:4,parameters:{...state},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
 function download(data,name,type){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_natural_wind.json','application/json'));
-$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);updateLabels();regenerate();}catch(error){$('msg').textContent='読込エラー: '+error.message;}e.target.value='';});
-$('reset').addEventListener('click',()=>{Object.assign(state,defaults);updateLabels();regenerate();});
+$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_1_stochastic_wind.json','application/json'));
+$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateLabels();regenerate();}catch(error){$('msg').textContent='読込エラー: '+error.message;}e.target.value='';});
+$('reset').addEventListener('click',()=>{Object.assign(state,defaults);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateLabels();regenerate();});
 $('exportGLB').addEventListener('click',async()=>{const button=$('exportGLB');button.disabled=true;$('msg').textContent='GLBを生成中…';try{
  // Export a separate, static scene, not the animated shader materials or tiled preview.
  const exportScene=new THREE.Group();exportScene.name='Grass_4m_Export';tileSource.children.forEach(child=>{if(!child.isMesh)return;const m=child.clone();m.geometry=child.geometry;m.material=child.material.clone();m.material.onBeforeCompile=THREE.Material.prototype.onBeforeCompile;m.material.customProgramCacheKey=()=>'';m.material.userData={};m.material.side=THREE.DoubleSide;exportScene.add(m);});
- const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止メッシュ、風はJSON設定）';
+ const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_1_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止メッシュ、風はJSON設定）';
  }catch(e){console.error(e);$('msg').textContent='GLB出力エラー: '+e.message;}finally{button.disabled=false;}});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 renderer.setAnimationLoop(()=>{
  const t=clock.getElapsedTime();
+ const windElapsed = Math.max(0, t-windStartTime);
+ const stochastic=sampledWind(windElapsed);
  if(micEnabled&&analyser&&audioData){
   analyser.getByteTimeDomainData(audioData);let total=0;
   for(let i=0;i<audioData.length;i++){const v=(audioData[i]-128)/128;total+=v*v;}
@@ -111,14 +149,17 @@ renderer.setAnimationLoop(()=>{
   audioLevel=audioLevel*0.84+rms*0.16;
  } else audioLevel*=0.88;
  for(const shader of shaders){
-  shader.uniforms.uTime.value=t;shader.uniforms.uWind.value=state.wind;
-  shader.uniforms.uSpeed.value=state.speed;shader.uniforms.uDirection.value=state.direction*Math.PI/180;
+  shader.uniforms.uTime.value=windElapsed;shader.uniforms.uWind.value=state.wind*stochastic.speedScale;
+  shader.uniforms.uSpeed.value=state.speed;shader.uniforms.uDirection.value=stochastic.directionDegrees*Math.PI/180;
   shader.uniforms.uGust.value=state.gust;shader.uniforms.uTurbulence.value=state.turbulence;
   shader.uniforms.uWaveScale.value=state.waveScale;
   shader.uniforms.uAudio.value=Math.min(0.55,audioLevel*state.audioGain*2.5);
   shader.uniforms.uColorReact.value=state.windColor;
  }
  if($('micLevel'))$('micLevel').textContent=(audioLevel*100).toFixed(1);
+ $('liveDirection').textContent=stochastic.directionDegrees.toFixed(1);
+ $('liveSpeed').textContent=stochastic.speedScale.toFixed(2);
+ $('windTime').textContent=windElapsed.toFixed(1);
  controls.update();renderer.render(scene,camera);
 });
 async function toggleMicrophone(){

@@ -1,34 +1,28 @@
-# GRASS STUDIO v1.6.0 — NATURAL WIND
+# GRASS STUDIO v1.6.1 — STOCHASTIC WIND
 
-NATURE STUDIO の芝生制作モジュール。v1.5.1 の造形編集・静止GLB出力を継承し、自然風と表現マッピングを追加。
+GitHub Pages / Three.js 0.170.0。既存 v1.6.0 の機能（形状編集、GLB静止メッシュ出力、マイク入力、JSON保存）を引き継ぎ、シード付きの時間変動する風を追加。
 
-## 追加機能
-- 風向（0–360°）、風速、風の強さ
-- 突風、乱流、風の波のスケール
-- 風と芝のハイライト色彩の連動
-- マイク音量による揺れ（MIC ON と音への反応感度が必要）
-- 上記設定の JSON 保存・読込
+## New controls
+- DIRECTION VARIATION: 基準風向からの最大角度 ±0–180°
+- SPEED VARIATION: 基準風速の倍率の偏差 ±0–100%
+- CHANGE INTERVAL: 変動ノードの間隔 1–30秒
+- SMOOTHNESS: 隣接ノードの補間の滑らかさ 0–100%
+- WIND SEED: 同条件で再現可能な乱数パターン
+- NEW SEED: 別のパターンを選択
+- RESTART WIND: 経過時間を0へ戻す
+- ライブ表示: 風向・風速倍率・経過秒数
 
-## 引き継いだ機能
-- 芝の長さ、幅、曲率、個体差、実メッシュ密度
-- 芝の色相・彩度・明るさ・粗さ
-- 4m タイルの繰り返し表示
-- 静止メッシュの GLB 書き出し
+## Run locally
+ターミナルで、このファイルのあるフォルダに移動し、`python3 -m http.server 8007`、ブラウザで http://localhost:8007/ を開く。
 
 ## GitHub Pages
-既存の `correctree/grass-studio` リポジトリにおいて、最初は `develop` ブランチへ `index.html`, `main.js`, `README.md` をアップロードしてください。`main` の成功版 v1.5.1 は、検証成功まで変更しないでください。
+既存 correctree/grass-studio の develop ブランチに `index.html`, `main.js`, `README.md` をアップロード。動作確認後に Pull Request → main。新しいリポジトリ不要。
 
-## Macでの検証
-このフォルダでターミナルを開いて以下を実行します。
+## Data export
+SAVE JSON: 旧v1.6プリセットとの互換性あり。追加の風変動パラメータと windSeed を記録。
+EXPORT GLB: 芝の静止メッシュと色のみ。風・マイク反応等をGLB単体へ埋め込むものではない。XR再生側へはJSONと風ランタイムを持ち込む必要がある。
 
-```
-python3 -m http.server 8006
-```
-
-`http://localhost:8006/` を開いてください。マイクはユーザーの操作で開始し、ブラウザの許可が必要です。マイク信号は端末内で分析し、音声の保存・送信は行いません。
-
-## ご注意
-- GLBには静止した芝生形状とマテリアルを出力します。風・音のリアルタイムアニメーションはGLBに含まれず、SAVE JSONで設定保存します。
-- 保存JSONの `appVersion` は `1.6.0` です。v1.5.1のJSONもキー互換がある範囲で読み込みます。
-- メッシュ密度を上げた複数タイル表示では、端末やブラウザによって負荷が高くなることがあります。
-- 本版はJavaScript構文確認済みですが、Chrome / Safari / iPhone でのGPU描画・マイク実機テストは未完了です。
+## Notes
+- ランダム変動は Math.imul のシード付きハッシュと周期間の補間で計算。
+- SEED、風向、変化間隔が同じで、経過秒数が同じなら同じ変動値（マイク除く）。
+- GLB生成・JSON再読み込み・風の動作は各自のブラウザで確認してください。JavaScript構文を検査済みですがブラウザ実機検証は未実施です。
