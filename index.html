@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GRASS STUDIO v1.5 | EDITOR</title>
+  <title>GRASS STUDIO v1.5.1 | GEOMETRY EDITOR</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d8ff; font-family: Arial, sans-serif; }
     #app { width: 100%; height: 100%; }
@@ -36,11 +36,15 @@
 <body>
   <div id="app"></div>
   <div id="ui">
-    <h1>GRASS STUDIO v1.5 <small style="font-weight:normal">EDITOR</small></h1>
+    <h1>GRASS STUDIO v1.5.1 <small style="font-weight:normal">EDITOR</small></h1>
     <div class="small">4m × 4m / NATURE STUDIO prototype</div>
     <h2>SHAPE / 造形</h2>
     <div class="row"><label for="height">葉の長さ（倍率） <span id="heightVal">1.00</span></label><input id="height" type="range" min="0.45" max="2.3" step="0.05" value="1"></div>
-    <div class="row"><label for="density">表示密度（割合） <span id="densityVal">1.00</span></label><input id="density" type="range" min="0.1" max="1" step="0.05" value="1"></div>
+    <div class="row"><label for="density">実メッシュ密度（割合） <span id="densityVal">1.00</span></label><input id="density" type="range" min="0.1" max="1" step="0.05" value="1"></div>
+    <div class="row"><label for="width">葉の幅（倍率） <span id="widthVal">1.00</span></label><input id="width" type="range" min="0.4" max="2.5" step="0.05" value="1"></div>
+    <div class="row"><label for="curve">葉の曲率 <span id="curveVal">0.50</span></label><input id="curve" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+    <div class="row"><label for="variation">形状の個体差 <span id="variationVal">0.50</span></label><input id="variation" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+    <div class="small">形状・密度を変更すると、4mタイルのメッシュを再生成します。</div>
     <h2>COLOR / MATERIAL</h2>
     <div class="row"><label for="hue">色相 <span id="hueVal">0</span>°</label><input id="hue" type="range" min="-150" max="150" step="1" value="0"></div>
     <div class="row"><label for="saturation">彩度 <span id="saturationVal">1.00</span></label><input id="saturation" type="range" min="0" max="2" step="0.05" value="1"></div>
@@ -62,9 +66,12 @@
     <div class="row">
       <button id="rebuild">芝生を再配置</button>
     </div>
+    <h2>EXPORT / 3Dモデル</h2>
+    <div class="row"><button id="exportGLB">EXPORT GLB（静止メッシュ）</button></div>
+    <div class="small">風の動きはGLBに含まれません。JSON設定と対応ランタイムが必要です。GLBは4mタイル1枚を出力します。</div>
     <h2>PRESET / 設定ファイル</h2>
     <div class="row"><button id="save">SAVE JSON</button> <label style="display:inline-block;background:#375d42;padding:6px 10px;border-radius:6px;cursor:pointer">LOAD JSON<input id="load" type="file" accept=".json,application/json" style="display:none"></label> <button id="reset">RESET</button></div>
-    <div class="small">GLBは元の4mモデルを使用。長さは頂点変形、密度は表示間引きです。GLBのメッシュ自体を変更・保存する機能ではありません。</div>
+    <div class="small">メッシュをブラウザ内で生成します。JSONは造形・風の設定、GLBは静止した造形を保存します。</div>
     <div class="small">
       4m × 4m 芝生タイル｜ドラッグで回転・スクロールで拡大縮小。<br>
       公開サイト上ではローカルサーバーは不要です。
@@ -81,6 +88,6 @@
     window.addEventListener('error', e => { document.getElementById('msg').textContent = 'JS error: ' + e.message; });
     window.addEventListener('unhandledrejection', e => { document.getElementById('msg').textContent = '読み込みエラー: ' + (e.reason?.message || e.reason); });
   </script>
-  <script type="module" src="./main.js?v=grass15"></script>
+  <script type="module" src="./main.js?v=grass151"></script>
 </body>
 </html>
