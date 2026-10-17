@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GRASS STUDIO v1.5.1 | GEOMETRY EDITOR</title>
+  <title>GRASS STUDIO v1.6.0 | NATURAL WIND</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d8ff; font-family: Arial, sans-serif; }
     #app { width: 100%; height: 100%; }
@@ -36,7 +36,7 @@
 <body>
   <div id="app"></div>
   <div id="ui">
-    <h1>GRASS STUDIO v1.5.1 <small style="font-weight:normal">EDITOR</small></h1>
+    <h1>GRASS STUDIO v1.6.0 <small style="font-weight:normal">EDITOR</small></h1>
     <div class="small">4m × 4m / NATURE STUDIO prototype</div>
     <h2>SHAPE / 造形</h2>
     <div class="row"><label for="height">葉の長さ（倍率） <span id="heightVal">1.00</span></label><input id="height" type="range" min="0.45" max="2.3" step="0.05" value="1"></div>
@@ -59,6 +59,17 @@
       <label for="speed">風の速さ <span id="speedVal">1.0</span></label>
       <input id="speed" type="range" min="0" max="3" step="0.01" value="1.0" />
     </div>
+
+    <h2>NATURAL WIND / 風の振る舞い</h2>
+    <div class="row"><label for="direction">風向 <span id="directionVal">35</span>°</label><input id="direction" type="range" min="0" max="360" step="1" value="35"></div>
+    <div class="row"><label for="gust">突風 <span id="gustVal">0.35</span></label><input id="gust" type="range" min="0" max="1" step="0.01" value="0.35"></div>
+    <div class="row"><label for="turbulence">乱流 <span id="turbulenceVal">0.35</span></label><input id="turbulence" type="range" min="0" max="1" step="0.01" value="0.35"></div>
+    <div class="row"><label for="waveScale">風の波の細かさ <span id="waveScaleVal">1.00</span></label><input id="waveScale" type="range" min="0.2" max="3" step="0.05" value="1"></div>
+    <div class="row"><label for="windColor">風と色彩の連動 <span id="windColorVal">0.30</span></label><input id="windColor" type="range" min="0" max="1" step="0.05" value="0.3"></div>
+    <h2>AUDIO REACTION / 音に反応</h2>
+    <div class="row"><button id="micToggle">MIC ON</button> <span class="small">入力レベル <span id="micLevel">0.0</span>%</span></div>
+    <div class="row"><label for="audioGain">音への反応感度 <span id="audioGainVal">0.00</span></label><input id="audioGain" type="range" min="0" max="2" step="0.05" value="0"></div>
+    <div class="small">マイク入力はブラウザの許可後に有効になります。入力音声は送信・録音しません。</div>
     <div class="row">
       <label for="tiles">タイル数（奇数推奨）</label>
       <input id="tiles" type="number" min="1" max="9" step="2" value="1" />
@@ -68,7 +79,7 @@
     </div>
     <h2>EXPORT / 3Dモデル</h2>
     <div class="row"><button id="exportGLB">EXPORT GLB（静止メッシュ）</button></div>
-    <div class="small">風の動きはGLBに含まれません。JSON設定と対応ランタイムが必要です。GLBは4mタイル1枚を出力します。</div>
+    <div class="small">風・マイク連動はGLBに含まれません。JSON設定と対応ランタイムが必要です。GLBは4mタイル1枚を出力します。</div>
     <h2>PRESET / 設定ファイル</h2>
     <div class="row"><button id="save">SAVE JSON</button> <label style="display:inline-block;background:#375d42;padding:6px 10px;border-radius:6px;cursor:pointer">LOAD JSON<input id="load" type="file" accept=".json,application/json" style="display:none"></label> <button id="reset">RESET</button></div>
     <div class="small">メッシュをブラウザ内で生成します。JSONは造形・風の設定、GLBは静止した造形を保存します。</div>
@@ -88,6 +99,6 @@
     window.addEventListener('error', e => { document.getElementById('msg').textContent = 'JS error: ' + e.message; });
     window.addEventListener('unhandledrejection', e => { document.getElementById('msg').textContent = '読み込みエラー: ' + (e.reason?.message || e.reason); });
   </script>
-  <script type="module" src="./main.js?v=grass151"></script>
+  <script type="module" src="./main.js?v=grass160"></script>
 </body>
 </html>
