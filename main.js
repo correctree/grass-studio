@@ -354,18 +354,18 @@ $('windSeed').addEventListener('change', e => {state.windSeed = THREE.MathUtils.
 $('newWindSeed').addEventListener('click',()=>{state.windSeed=1+Math.floor(Math.random()*999999998);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();});
 $('restartWind').addEventListener('click',()=>{windStartTime=clock.getElapsedTime();});
 
-function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.7',tileSizeMeters:4,parameters:{...state},customPalette:[...customPalette],groundColor:'#'+groundColor.getHexString(),particleSettings:{...particleState},particleSource:importedName||null,visibility:{...visibility},behavior:{...behavior},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
+function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.8.3',tileSizeMeters:4,parameters:{...state},bodySettings:{...bodySettings},customPalette:[...customPalette],groundColor:'#'+groundColor.getHexString(),particleSettings:{...particleState},particleSource:importedName||null,visibility:{...visibility},behavior:{...behavior},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
 function download(data,name,type){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_7_behavior.json','application/json'));
-$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);if(o.behavior && typeof o.behavior==='object'){for(const k of Object.keys(behavior))if(typeof o.behavior[k]===typeof behavior[k])behavior[k]=o.behavior[k];updateBehaviorUI();}if(o.visibility)for(const k of Object.keys(visibility))if(typeof o.visibility[k]==='boolean')visibility[k]=o.visibility[k];if(o.groundColor && /^#[0-9a-fA-F]{6}$/.test(o.groundColor))setGround(o.groundColor);if(o.particleSettings)for(const k of particleNames)if(Number.isFinite(o.particleSettings[k]))particleState[k]=o.particleSettings[k];particleUI();if(importedScene)rebuildParticles();
+$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_8_3_body_interaction.json','application/json'));
+$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);if(o.bodySettings){for(const k of Object.keys(bodySettings))if(typeof o.bodySettings[k]===typeof bodySettings[k])bodySettings[k]=o.bodySettings[k];updateBodyUI();}if(o.behavior && typeof o.behavior==='object'){for(const k of Object.keys(behavior))if(typeof o.behavior[k]===typeof behavior[k])behavior[k]=o.behavior[k];updateBehaviorUI();}if(o.visibility)for(const k of Object.keys(visibility))if(typeof o.visibility[k]==='boolean')visibility[k]=o.visibility[k];if(o.groundColor && /^#[0-9a-fA-F]{6}$/.test(o.groundColor))setGround(o.groundColor);if(o.particleSettings)for(const k of particleNames)if(Number.isFinite(o.particleSettings[k]))particleState[k]=o.particleSettings[k];particleUI();if(importedScene)rebuildParticles();
  if(Array.isArray(o.customPalette))for(let i=0;i<3;i++)if(/^#[0-9a-fA-F]{6}$/.test(o.customPalette[i]||''))customPalette[i]=o.customPalette[i];
  refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();}catch(error){$('msg').textContent='読込エラー: '+error.message;}e.target.value='';});
-$('reset').addEventListener('click',()=>{Object.assign(state,defaults);Object.assign(behavior,behaviorDefaults);updateBehaviorUI();Object.assign(visibility,{showDefault:true,showCustom:true,showGround:true});setGround('#37692e');Object.assign(particleState,{count:300,scale:0.6,spread:4,height:0.2,motion:0.35,spin:0.45,seed:6314});particleUI();if(importedScene)rebuildParticles();customPalette.splice(0,3,'#285be5','#ff9bc9','#f2d35d');refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();});
+$('reset').addEventListener('click',()=>{Object.assign(state,defaults);Object.assign(behavior,behaviorDefaults);Object.assign(bodySettings,bodyDefaults);updateBodyUI();updateBehaviorUI();Object.assign(visibility,{showDefault:true,showCustom:true,showGround:true});setGround('#37692e');Object.assign(particleState,{count:300,scale:0.6,spread:4,height:0.2,motion:0.35,spin:0.45,seed:6314});particleUI();if(importedScene)rebuildParticles();customPalette.splice(0,3,'#285be5','#ff9bc9','#f2d35d');refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();});
 $('exportGLB').addEventListener('click',async()=>{const button=$('exportGLB');button.disabled=true;$('msg').textContent='GLBを生成中…';try{
  // Export a separate, static scene, not the animated shader materials or tiled preview.
  const exportScene=new THREE.Group();exportScene.name='Grass_4m_Export';tileSource.children.forEach(child=>{if(!child.isMesh)return;if(child.name==='Ground_4m'?!visibility.showGround:!visibility.showDefault)return;const m=child.clone();m.geometry=child.geometry;m.material=child.material.clone();m.material.onBeforeCompile=THREE.Material.prototype.onBeforeCompile;m.material.customProgramCacheKey=()=>'';m.material.userData={};m.material.side=THREE.DoubleSide;exportScene.add(m);});
  for(const mesh of (visibility.showCustom?particleMeshes:[])){const clone=mesh.clone();clone.geometry=mesh.geometry;clone.material=mesh.material.clone();exportScene.add(clone);}
- const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_7_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
+ const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_8_3_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
  }catch(e){console.error(e);$('msg').textContent='GLB出力エラー: '+e.message;}finally{button.disabled=false;}});
 
 function setGround(hex){groundColor.set(hex);if(groundMaterial)groundMaterial.color.copy(groundColor);$('groundColor').value='#'+groundColor.getHexString();}
@@ -390,10 +390,125 @@ function rebuildParticles(){clearParticles();if(!importedScene)return;
  updateParticles(0);applyVisibility();
  $('msg').textContent=`独自GLB配置完了：${cnt}個 / ${particleMeshes.length}メッシュ種`;
 }
+
+const bodySettings={enabled:true,sensitivity:1,spread:1,showCamera:false,handSmoothing:0.78,motionSmoothing:0.83};
+const bodyRuntime={active:false,hands:0,gesture:'none',spreadScale:1,target:new THREE.Vector3(),lastFrame:-1,busy:false,stream:null,recognizer:null,lastSeen:0,lastTrackingUpdate:0,lastRenderTime:0,smoothedTarget:new THREE.Vector3(),smoothedSpread:1,pinchStable:false,pinchFrames:0};
+const bodyDefaults={...bodySettings};
+function updateBodyUI(){
+ $('bodyEnabled').checked=bodySettings.enabled;
+ $('bodySensitivity').value=bodySettings.sensitivity;$('bodySensitivityVal').textContent=bodySettings.sensitivity.toFixed(2);
+ $('bodySpread').value=bodySettings.spread;$('bodySpreadVal').textContent=bodySettings.spread.toFixed(2);
+ $('showCamera').checked=bodySettings.showCamera;
+ for(const [k,id] of [['handSmoothing','handSmoothing'],['motionSmoothing','motionSmoothing']]){$(id).value=bodySettings[k];$(id+'Val').textContent=bodySettings[k].toFixed(2);}
+ $('handVideo').style.display=bodySettings.showCamera?'block':'none';
+}
+$('bodyEnabled').addEventListener('change',e=>bodySettings.enabled=e.target.checked);
+for(const [key,id] of [['sensitivity','bodySensitivity'],['spread','bodySpread']]){
+ $(id).addEventListener('input',e=>{bodySettings[key]=Number(e.target.value);updateBodyUI();});
+}
+$('showCamera').addEventListener('change',e=>{bodySettings.showCamera=e.target.checked;updateBodyUI();});
+for(const k of ['handSmoothing','motionSmoothing'])$(k).addEventListener('input',e=>{bodySettings[k]=Number(e.target.value);updateBodyUI();});
+function handToWorld(x,y){
+ pointerCoords.set((1-x)*2-1, -(y*2-1)); // mirrored preview: horizontal hand motion follows user
+ behaviorRay.setFromCamera(pointerCoords,camera);
+ const hit=new THREE.Vector3();
+ return behaviorRay.ray.intersectPlane(behaviorPlane,hit)?hit:behaviorTarget.clone();
+}
+async function stopCamera(){
+ bodyRuntime.active=false;bodyRuntime.hands=0;bodyRuntime.gesture='none';bodyRuntime.spreadScale=1;bodyRuntime.lastSeen=0;bodyRuntime.pinchStable=false;
+ if(bodyRuntime.stream){bodyRuntime.stream.getTracks().forEach(t=>t.stop());bodyRuntime.stream=null;}
+ $('handVideo').srcObject=null;
+ $('cameraToggle').textContent='CAMERA ON';$('handStatus').textContent='カメラ停止中';
+}
+// Fall back between CDNs if one of them is unreachable from the browser.
+// Keep every MediaPipe runtime asset on a compatible pinned version.
+async function loadHandLandmarker(){
+ const base=new URL('./vendor/mediapipe/',import.meta.url);
+ const moduleURL=new URL('vision_bundle.mjs',base).href;
+ const wasmURL=new URL('wasm/',base).href.replace(/\/$/,'');
+ const modelURL=new URL('hand_landmarker.task',base).href;
+ $('handStatus').textContent='ローカルMediaPipeを読み込み中…';
+ let api;
+ try{
+  const mod=await import(moduleURL);
+  api=mod.default?.HandLandmarker?mod.default:mod;
+  if(!api.HandLandmarker||!api.FilesetResolver)throw Error('MediaPipe exports are missing');
+ }catch(e){throw new Error('ローカルJSを読み込めません。setup-mediapipe.sh を一度実行してください。 '+e.message);}
+ $('handStatus').textContent='WASMと認識モデルを準備中…';
+ try{
+  const files=await api.FilesetResolver.forVisionTasks(wasmURL);
+  return await api.HandLandmarker.createFromOptions(files,{
+   baseOptions:{modelAssetPath:modelURL,delegate:'CPU'},runningMode:'VIDEO',numHands:2,
+   minHandDetectionConfidence:0.55,minHandPresenceConfidence:0.55,minTrackingConfidence:0.5
+  });
+ }catch(e){throw new Error('ローカルWASM／モデルの読み込みに失敗しました。 '+e.message);}
+}
+async function startCamera(){
+ const video=$('handVideo');
+ $('cameraToggle').disabled=true;$('handStatus').textContent='モデル準備中…';
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('HTTPS または localhost が必要です');
+  if(!bodyRuntime.recognizer)bodyRuntime.recognizer=await loadHandLandmarker();
+  bodyRuntime.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+  video.srcObject=bodyRuntime.stream;await video.play();
+  bodyRuntime.active=true;bodyRuntime.lastFrame=-1;bodyRuntime.lastSeen=0;bodyRuntime.lastTrackingUpdate=0;bodyRuntime.smoothedSpread=1;bodyRuntime.pinchStable=false;
+  $('cameraToggle').textContent='CAMERA OFF';$('handStatus').textContent='手をカメラへ';
+ }catch(err){await stopCamera();$('handStatus').textContent='起動失敗: '+err.message;console.error(err);}
+ finally{$('cameraToggle').disabled=false;}
+}
+$('cameraToggle').addEventListener('click',()=>bodyRuntime.active?stopCamera():startCamera());
+function updateHandTracking(){
+ if(!bodyRuntime.active||!bodySettings.enabled||bodyRuntime.busy)return;
+ const video=$('handVideo');
+ if(video.readyState<2||video.currentTime===bodyRuntime.lastFrame)return;
+ // Limit synchronous ML inference work, leaving rendering time for the GPU.
+ const now=performance.now();if(now-bodyRuntime.lastTrackingUpdate<66)return;
+ bodyRuntime.lastTrackingUpdate=now;
+ bodyRuntime.lastFrame=video.currentTime;
+ bodyRuntime.busy=true;
+ try{
+  const result=bodyRuntime.recognizer.detectForVideo(video,performance.now());
+  const hands=result.landmarks||[];if(hands.length)bodyRuntime.lastSeen=performance.now();
+ bodyRuntime.hands=hands.length||((performance.now()-bodyRuntime.lastSeen<350)?bodyRuntime.hands:0);
+  if(hands.length){
+   const hand=hands[0];const tip=hand[8],thumb=hand[4],wrist=hand[0],middle=hand[9];
+   const pinch=Math.hypot(tip.x-thumb.x,tip.y-thumb.y);
+   const palm=Math.max(.025,Math.hypot(wrist.x-middle.x,wrist.y-middle.y));
+   const ratio=pinch/palm;
+   // Two switching thresholds avoid mode flicker near the pinch boundary.
+   if(bodyRuntime.pinchStable){if(ratio>0.72)bodyRuntime.pinchStable=false;}
+   else if(ratio<0.43)bodyRuntime.pinchStable=true;
+   bodyRuntime.gesture=bodyRuntime.pinchStable?'attract':'repel';
+   const rawTarget=handToWorld(tip.x,tip.y);
+   // Exponential filtering: high smoothing = more stable but less immediate.
+   const alpha=THREE.MathUtils.lerp(0.48,0.07,bodySettings.handSmoothing);
+   if(bodyRuntime.lastSeen && !bodyRuntime.smoothedTargetInitialized){bodyRuntime.smoothedTarget.copy(rawTarget);bodyRuntime.smoothedTargetInitialized=true;}
+   else bodyRuntime.smoothedTarget.lerp(rawTarget,alpha);
+   bodyRuntime.target.copy(bodyRuntime.smoothedTarget);
+   if(hands.length===2){
+    const a=hands[0][9],b=hands[1][9];
+    const dist=Math.hypot(a.x-b.x,a.y-b.y);
+    bodyRuntime.spreadScale=THREE.MathUtils.clamp(1+(dist-0.3)*bodySettings.spread*2,0.4,2.5);
+   }else bodyRuntime.spreadScale=1;
+  }else if(performance.now()-bodyRuntime.lastSeen>350){bodyRuntime.gesture='none';bodyRuntime.spreadScale=1;bodyRuntime.hands=0;bodyRuntime.smoothedTargetInitialized=false;}
+  $('handStatus').textContent=hands.length?`${hands.length}手 / ${bodyRuntime.gesture.toUpperCase()} / 広がり ${bodyRuntime.spreadScale.toFixed(2)}x`:'手が検出されていません';
+ }catch(err){console.warn('Hand tracking',err);$('handStatus').textContent='認識エラー（コンソール確認）';}
+ finally{bodyRuntime.busy=false;}
+}
+updateBodyUI();
+
 function updateParticles(t){if(!particleMeshes.length)return;
  const speed=behavior.speed,amount=behavior.strength;
  const swarmCenter=new THREE.Vector3(Math.sin(t*0.23*speed)*particleState.spread*.22,0.7+Math.sin(t*.32*speed)*0.4,Math.cos(t*.18*speed)*particleState.spread*.22);
- const target=behavior.pointer?behaviorTarget:swarmCenter;
+ const tracking=bodyRuntime.active&&bodySettings.enabled&&bodyRuntime.hands>0;
+ const activeMode=tracking?bodyRuntime.gesture:behavior.mode;
+ const target=tracking?bodyRuntime.target:(behavior.pointer?behaviorTarget:swarmCenter);
+ const spreadGoal=tracking?bodyRuntime.spreadScale:1;
+ bodyRuntime.smoothedSpread=THREE.MathUtils.lerp(bodyRuntime.smoothedSpread,spreadGoal,0.11);
+ const handScale=tracking?bodyRuntime.smoothedSpread:1;
+ const frameDelta=Math.min(0.05,Math.max(0.001,t-(bodyRuntime.lastRenderTime||t)));bodyRuntime.lastRenderTime=t;
+ const followRate=THREE.MathUtils.lerp(17,2.5,bodySettings.motionSmoothing);
+ const motionAlpha=1-Math.exp(-followRate*frameDelta);
  const audioExpansion=Math.min(4,audioLevel*state.audioGain*behavior.audioSpread*6);
  
  for(let i=0;i<particleTransforms.length;i++){
@@ -404,14 +519,14 @@ function updateParticles(t){if(!particleMeshes.length)return;
   let px=a.x+wobbleX,py=a.y+wobbleY,pz=a.z+wobbleZ;
   const vx=a.x-target.x,vy=a.y-target.y,vz=a.z-target.z;
   const norm=Math.max(.001,Math.hypot(vx,vy,vz));
-  const ease=Math.min(1,amount*.55);
-  if(behavior.mode==='attract'){
+  const ease=Math.min(1,amount*.55*(tracking?bodySettings.sensitivity:1));
+  if(activeMode==='attract'){
    px=THREE.MathUtils.lerp(px,target.x+Math.cos(a.phase+t*.35*speed)*(.15+norm*.07),ease);
    py=THREE.MathUtils.lerp(py,target.y+Math.sin(a.phase+t*.4*speed)*.28,ease);
    pz=THREE.MathUtils.lerp(pz,target.z+Math.sin(a.phase+t*.35*speed)*(.15+norm*.07),ease);
-  } else if(behavior.mode==='repel'){
+  } else if(activeMode==='repel'){
    px+=(vx/norm)*amount*1.15;py+=(vy/norm)*amount*.65;pz+=(vz/norm)*amount*1.15;
-  } else if(behavior.mode==='swarm'){
+  } else if(activeMode==='swarm'){
    const orbit=a.phase+t*(.35+.4*speed),rr=.25+norm*(.25+.12*Math.sin(t*.5+a.phase));
    px=THREE.MathUtils.lerp(px,swarmCenter.x+Math.cos(orbit)*rr,ease);
    py=THREE.MathUtils.lerp(py,swarmCenter.y+Math.sin(orbit*1.45)*rr*.55,ease);
@@ -419,7 +534,10 @@ function updateParticles(t){if(!particleMeshes.length)return;
   }
   // Microphone may widen the entire cloud regardless of behavior mode.
   px+=vx/norm*audioExpansion;py+=vy/norm*audioExpansion*.5;pz+=vz/norm*audioExpansion;
-  dummy.position.set(px,py,pz);
+  if(tracking){px=target.x+(px-target.x)*handScale;py=target.y+(py-target.y)*handScale;pz=target.z+(pz-target.z)*handScale;}
+  if(!a.filteredPosition)a.filteredPosition=new THREE.Vector3(px,py,pz);
+  a.filteredPosition.lerp(new THREE.Vector3(px,py,pz),motionAlpha);
+  dummy.position.copy(a.filteredPosition);
   dummy.rotation.set(Math.sin(t*.6*speed+a.phase)*m*.12,a.rot+t*particleState.spin*.5,Math.cos(t*.8*speed+a.phase)*m*.12);
   dummy.scale.setScalar(a.scale*(1+Math.min(.5,audioExpansion*.08)));dummy.updateMatrix();for(const mesh of particleMeshes)mesh.setMatrixAt(i,dummy.matrix);
  }
@@ -449,6 +567,7 @@ updateBehaviorUI();
 
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 renderer.setAnimationLoop(()=>{
+ updateHandTracking();
  const t=clock.getElapsedTime();
  const windElapsed = Math.max(0, t-windStartTime);
  const stochastic=sampledWind(windElapsed);
