@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GRASS STUDIO v1.6.6.2 | GENERATIVE FORM & COLOR</title>
+  <title>GRASS STUDIO v1.6.7 | GENERATIVE FORM & COLOR</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d8ff; font-family: Arial, sans-serif; }
     #app { width: 100%; height: 100%; }
@@ -39,7 +39,7 @@
 <body>
   <div id="app"></div>
   <div id="ui">
-    <h1>GRASS STUDIO v1.6.6.2 <small style="font-weight:normal">GENERATIVE FORM & COLOR</small></h1>
+    <h1>GRASS STUDIO v1.6.7 <small style="font-weight:normal">GENERATIVE FORM & COLOR</small></h1>
     <div class="small">4m × 4m / NATURE STUDIO prototype</div>
     <details><summary>SHAPE / 造形</summary>
     <div class="row"><label for="height">葉の長さ（倍率） <span id="heightVal">1.00</span></label><input id="height" type="range" min="0.45" max="2.3" step="0.05" value="1"></div>
@@ -55,7 +55,7 @@
     <div class="row"><label for="brightness">明るさ <span id="brightnessVal">1.00</span></label><input id="brightness" type="range" min="0.3" max="1.7" step="0.05" value="1"></div>
     <div class="row"><label for="roughness">粗さ（1=マット） <span id="roughnessVal">0.96</span></label><input id="roughness" type="range" min="0.2" max="1" step="0.02" value="0.96"></div>
     </details>
-    <details><summary>SHAPE & MATERIAL / v1.6.6</summary>
+    <details><summary>SHAPE & MATERIAL / v1.6.7</summary>
     <div class="row"><label for="creativeMode">表現モード</label><select id="creativeMode" style="width:100%;padding:7px;background:#263e30;color:white;border-radius:7px"><option value="realistic">REALISTIC MODE</option><option value="creative">CREATIVE MODE</option></select><div class="small" id="modeInfo">REALISTIC: 自然な芝生から編集</div></div>
     <div class="row"><label for="profile">LEAF PROFILE / 葉の広がり <span id="profileVal">0.65</span></label><input id="profile" type="range" min="0" max="1" step="0.05" value="0.65"></div>
     <div class="row"><label for="tipRound">TIP ROUND / 葉先の丸み <span id="tipRoundVal">0.00</span></label><input id="tipRound" type="range" min="0" max="1" step="0.05" value="0"></div>
@@ -123,7 +123,7 @@
     <div class="small">風向・風速はシード付きで滑らかに変化します。マイク入力を除けば、同じSEEDと経過時間で同じ風を再現できます。</div>
     <div class="small">現在の風向: <b id="liveDirection">--</b>° ｜風速倍率: <b id="liveSpeed">--</b>× ｜経過: <b id="windTime">--</b>s</div>
     </details>
-    <details open><summary>GENERATIVE FORM & COLOR / v1.6.6</summary>
+    <details open><summary>GENERATIVE FORM & COLOR / v1.6.7</summary>
     <div class="row"><label for="dynamicBend">DYNAMIC BEND / 動的な葉の湾曲 <span id="dynamicBendVal">0.35</span></label><input id="dynamicBend" type="range" min="0" max="1.5" step="0.05" value="0.35"></div>
     <div class="row"><label for="audioMorph">AUDIO MORPH / 音で葉が変形 <span id="audioMorphVal">0.50</span></label><input id="audioMorph" type="range" min="0" max="1.5" step="0.05" value="0.50"></div>
     <div class="row"><label for="morphFrequency">MORPH FREQUENCY / 形状変化の周期 <span id="morphFrequencyVal">1.00</span></label><input id="morphFrequency" type="range" min="0.1" max="4" step="0.1" value="1"></div>
@@ -162,6 +162,16 @@
 <div class="row"><label for="particleheight">HEIGHT / 浮遊高さ(m) <span id="particleheightVal">0.2</span></label><input type="range" id="particleheight" min="0" max="4" value="0.2" step="0.05" /></div>
 <div class="row"><label for="particlemotion">MOTION / 浮遊強度 <span id="particlemotionVal">0.35</span></label><input type="range" id="particlemotion" min="0" max="2" value="0.35" step="0.05" /></div>
 <div class="row"><label for="particlespin">SPIN / 回転速度 <span id="particlespinVal">0.45</span></label><input type="range" id="particlespin" min="0" max="3" value="0.45" step="0.05" /></div>
+    </details>
+    <details open><summary>CUSTOM FORM BEHAVIOR / 群体表現</summary>
+      <div class="row"><label for="behaviorMode">BEHAVIOR / 群れの動き</label><select id="behaviorMode" style="width:100%;padding:7px;background:#263e30;color:white;border-radius:7px"><option value="float">FLOAT / 浮遊</option><option value="attract">ATTRACT / 集合</option><option value="repel">REPEL / 分散</option><option value="swarm">SWARM / 群体</option></select></div>
+      <div class="row"><label for="behaviorStrength">STRENGTH / 挙動の強さ <span id="behaviorStrengthVal">0.65</span></label><input id="behaviorStrength" type="range" min="0" max="2" step="0.05" value="0.65"></div>
+      <div class="row"><label for="behaviorSpeed">SPEED / 変化速度 <span id="behaviorSpeedVal">1.00</span></label><input id="behaviorSpeed" type="range" min="0.1" max="3" step="0.05" value="1"></div>
+      <div class="row"><label for="audioSpread">AUDIO SPREAD / 音による拡散 <span id="audioSpreadVal">0.00</span></label><input id="audioSpread" type="range" min="0" max="3" step="0.05" value="0"></div>
+      <div class="row"><label for="behaviorColor">COLOR SYNC / 動きと色 <span id="behaviorColorVal">0.35</span></label><input id="behaviorColor" type="range" min="0" max="1" step="0.05" value="0.35"></div>
+      <div class="row"><label><input id="pointerInteract" type="checkbox" checked> POINTER INTERACTION / マウス・タッチ</label></div>
+      <div class="row"><button id="behaviorReset">RESET BEHAVIOR</button></div>
+      <div class="small">3D画面をクリック・タッチすると、その位置が集合・反発の中心になります。SWARMでは移動する群れを生成。音の反応にはMIC ONとマイク許可が必要です。</div>
     </details>
     <details><summary>EXPORT / 3Dモデル</summary>
     <div class="row"><button id="exportGLB">EXPORT GLB（静止メッシュ）</button></div>
