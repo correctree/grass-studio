@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GRASS STUDIO v1.6.3 | NATURAL WIND</title>
+  <title>GRASS STUDIO v1.6.5 | GENERATIVE FORM & COLOR</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d8ff; font-family: Arial, sans-serif; }
     #app { width: 100%; height: 100%; }
@@ -36,7 +36,7 @@
 <body>
   <div id="app"></div>
   <div id="ui">
-    <h1>GRASS STUDIO v1.6.3 <small style="font-weight:normal">EDITOR</small></h1>
+    <h1>GRASS STUDIO v1.6.5 <small style="font-weight:normal">GENERATIVE FORM & COLOR</small></h1>
     <div class="small">4m × 4m / NATURE STUDIO prototype</div>
     <h2>SHAPE / 造形</h2>
     <div class="row"><label for="height">葉の長さ（倍率） <span id="heightVal">1.00</span></label><input id="height" type="range" min="0.45" max="2.3" step="0.05" value="1"></div>
@@ -50,7 +50,7 @@
     <div class="row"><label for="saturation">彩度 <span id="saturationVal">1.00</span></label><input id="saturation" type="range" min="0" max="2" step="0.05" value="1"></div>
     <div class="row"><label for="brightness">明るさ <span id="brightnessVal">1.00</span></label><input id="brightness" type="range" min="0.3" max="1.7" step="0.05" value="1"></div>
     <div class="row"><label for="roughness">粗さ（1=マット） <span id="roughnessVal">0.96</span></label><input id="roughness" type="range" min="0.2" max="1" step="0.02" value="0.96"></div>
-    <h2>SHAPE & MATERIAL / v1.6.3</h2>
+    <h2>SHAPE & MATERIAL / v1.6.5</h2>
     <div class="row"><label for="creativeMode">表現モード</label><select id="creativeMode" style="width:100%;padding:7px;background:#263e30;color:white;border-radius:7px"><option value="realistic">REALISTIC MODE</option><option value="creative">CREATIVE MODE</option></select><div class="small" id="modeInfo">REALISTIC: 自然な芝生から編集</div></div>
     <div class="row"><label for="profile">LEAF PROFILE / 葉の広がり <span id="profileVal">0.65</span></label><input id="profile" type="range" min="0" max="1" step="0.05" value="0.65"></div>
     <div class="row"><label for="tipRound">TIP ROUND / 葉先の丸み <span id="tipRoundVal">0.00</span></label><input id="tipRound" type="range" min="0" max="1" step="0.05" value="0"></div>
@@ -60,6 +60,32 @@
     <div class="row"><label for="emission">EMISSION / 発光 <span id="emissionVal">0.00</span></label><input id="emission" type="range" min="0" max="2" step="0.05" value="0"></div>
     <div class="row"><label for="gradient">GRADIENT / 根元と葉先の階調 <span id="gradientVal">0.25</span></label><input id="gradient" type="range" min="0" max="1" step="0.05" value="0.25"></div>
     <div class="row"><label for="reactiveGlow">WIND GLOW / 風による色の変化 <span id="reactiveGlowVal">0.30</span></label><input id="reactiveGlow" type="range" min="0" max="1" step="0.05" value="0.3"></div>
+
+    <h2>GENERATIVE FORM / 幾何学的造形</h2>
+    <div class="row"><label for="formMode">FORM MODE / 造形タイプ</label><select id="formMode" style="width:100%;padding:7px;background:#263e30;color:white;border-radius:7px"><option value="grass">GRASS</option><option value="bubble">BUBBLE</option><option value="wave">WAVE</option><option value="zigzag">ZIGZAG</option><option value="spiral">SPIRAL</option><option value="bubble3d">BUBBLE 3D</option><option value="spike3d">SPIKE 3D</option><option value="crystal3d">CRYSTAL 3D</option><option value="orbcluster">ORB CLUSTER 3D</option></select><div class="small" id="formInfo">GRASS: 芝生ベースの形状</div></div>
+    <div class="row"><label for="formAmplitude">FORM AMPLITUDE / 変形の強さ <span id="formAmplitudeVal">0.60</span></label><input id="formAmplitude" type="range" min="0" max="2" step="0.05" value="0.6"></div>
+    <div class="row"><label for="patternScale">PATTERN SCALE / 模様の細かさ <span id="patternScaleVal">1.00</span></label><input id="patternScale" type="range" min="0.3" max="3" step="0.05" value="1"></div>
+    <div class="row"><label for="patternSharpness">PATTERN SHARPNESS / エッジ感 <span id="patternSharpnessVal">0.50</span></label><input id="patternSharpness" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+    <div class="small">葉をベースにしながら、水玉・波・ギザギザ・らせんへ再生成します。</div>
+
+    <h2>SOLID FORM / 立体生成</h2>
+    <div class="row"><label for="solidCount">SOLID COUNT / 立体の数 <span id="solidCountVal">450</span></label><input id="solidCount" type="range" min="50" max="1200" step="50" value="450"></div>
+    <div class="row"><label for="solidScale">SOLID SCALE / 立体サイズ <span id="solidScaleVal">1.00</span></label><input id="solidScale" type="range" min="0.25" max="3" step="0.05" value="1"></div>
+    <div class="row"><label for="solidMotion">SOLID MOTION / 動きの強さ <span id="solidMotionVal">0.50</span></label><input id="solidMotion" type="range" min="0" max="1.5" step="0.05" value="0.5"></div>
+    <div class="small">SOLID FORMは低ポリゴン3D形状を生成。GLBへ静的な形状を書き出せます。風による変位は既存のシェーダーを利用します。</div>
+    <h2>PALETTE / グラフィカルな色彩</h2>
+    <div class="row"><label for="paletteMode">PALETTE MODE / 配色</label><select id="paletteMode" style="width:100%;padding:7px;background:#263e30;color:white;border-radius:7px"><option value="rainbow">RAINBOW</option><option value="duotone">DUOTONE</option><option value="tritone">TRITONE</option><option value="pastel">PASTEL</option></select><div class="small" id="paletteInfo">RAINBOW: 多彩な連続色</div></div>
+    <div class="row"><label>CUSTOM PALETTE / 色をクリックして指定</label>
+    <div style="display:flex;gap:10px;align-items:center">
+      <label>A <input id="customColor0" type="color" value="#285be5"></label>
+      <label>B <input id="customColor1" type="color" value="#ff9bc9"></label>
+      <label>C <input id="customColor2" type="color" value="#f2d35d"></label>
+    </div><div class="small">DUOTONEではA・B、TRITONEではA・B・Cを使用します。</div></div>
+    <div class="row"><label for="paletteShift">PALETTE SHIFT / 色相の回転 <span id="paletteShiftVal">0</span>°</label><input id="paletteShift" type="range" min="-180" max="180" step="1" value="0"></div>
+    <div class="row"><label for="paletteContrast">PALETTE CONTRAST / 色の対比 <span id="paletteContrastVal">0.70</span></label><input id="paletteContrast" type="range" min="0" max="1.5" step="0.05" value="0.7"></div>
+    <div class="row"><label for="paletteFlow">PALETTE FLOW / 色の流れ <span id="paletteFlowVal">0.35</span></label><input id="paletteFlow" type="range" min="0" max="1.5" step="0.05" value="0.35"></div>
+    <div class="small">レインボー、2色、3色、パステルを切り替え、時間変化する色のハーモニーを作れます。</div>
+
     <h2>WIND / 風</h2>
     <div class="row">
       <label for="wind">風の強さ <span id="windVal">0.18</span></label>
@@ -85,7 +111,7 @@
     <div class="row"><button id="newWindSeed">NEW SEED</button> <button id="restartWind">RESTART WIND</button></div>
     <div class="small">風向・風速はシード付きで滑らかに変化します。マイク入力を除けば、同じSEEDと経過時間で同じ風を再現できます。</div>
     <div class="small">現在の風向: <b id="liveDirection">--</b>° ｜風速倍率: <b id="liveSpeed">--</b>× ｜経過: <b id="windTime">--</b>s</div>
-    <h2>DYNAMIC EXPRESSION / v1.6.3</h2>
+    <h2>GENERATIVE FORM & COLOR / v1.6.5</h2>
     <div class="row"><label for="dynamicBend">DYNAMIC BEND / 動的な葉の湾曲 <span id="dynamicBendVal">0.35</span></label><input id="dynamicBend" type="range" min="0" max="1.5" step="0.05" value="0.35"></div>
     <div class="row"><label for="audioMorph">AUDIO MORPH / 音で葉が変形 <span id="audioMorphVal">0.50</span></label><input id="audioMorph" type="range" min="0" max="1.5" step="0.05" value="0.50"></div>
     <div class="row"><label for="morphFrequency">MORPH FREQUENCY / 形状変化の周期 <span id="morphFrequencyVal">1.00</span></label><input id="morphFrequency" type="range" min="0.1" max="4" step="0.1" value="1"></div>
@@ -124,6 +150,6 @@
     window.addEventListener('error', e => { document.getElementById('msg').textContent = 'JS error: ' + e.message; });
     window.addEventListener('unhandledrejection', e => { document.getElementById('msg').textContent = '読み込みエラー: ' + (e.reason?.message || e.reason); });
   </script>
-  <script type="module" src="./main.js?v=grass163"></script>
+  <script type="module" src="./main.js?v=grass1651"></script>
 </body>
 </html>
