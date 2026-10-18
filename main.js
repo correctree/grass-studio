@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 const $=id=>document.getElementById(id);
 const state={height:1,density:1,width:1,curve:0.5,variation:0.5,hue:0,saturation:1,brightness:1,roughness:.96,wind:.18,speed:1,direction:35,gust:0.35,turbulence:0.35,waveScale:1.0,audioGain:0,windColor:0.3,tiles:1,seed:20261017,directionVariation:45,speedVariation:35,changeInterval:6,smoothness:80,windSeed:16101,profile:0.65,tipRound:0,twist:0,cluster:0,opacity:1,emission:0,gradient:0.25,reactiveGlow:0.3,creativeMode:0,dynamicBend:0.35,audioMorph:0.50,morphFrequency:1.0,colorPulse:0.25,formMode:0,solidCount:450,solidScale:1,solidMotion:0.5,formAmplitude:0.6,patternScale:1.0,patternSharpness:0.5,paletteMode:0,paletteShift:0,paletteContrast:0.7,paletteFlow:0.35};
 const defaults={...state};
@@ -21,6 +22,9 @@ const customPalette=['#285be5','#ff9bc9','#f2d35d'];
 const solidForms=new Set(['bubble3d','spike3d','crystal3d','orbcluster']);
 const palette=['#497c35','#528a39','#5b9241','#659b43','#76a64c','#83a951'].map(c=>new THREE.Color(c));
 const groundColor=new THREE.Color('#37692e');
+let groundMaterial=null, importedScene=null, importedName='', particleGroup=new THREE.Group(),particleMeshes=[],particleTransforms=[];
+scene.add(particleGroup);
+const particleState={count:300,scale:0.6,spread:4,height:0.2,motion:0.35,spin:0.45,seed:6314};
 function randGen(seed){let n=seed>>>0;return ()=>{n=(1664525*n+1013904223)>>>0;return n/4294967296;};}
 // Stateless seeded stochastic wind: the same seed, parameters and elapsed time
 // reproduce the same wind changes (apart from external audio input).
@@ -306,12 +310,24 @@ function createSolidGeometry(){
 }
 function disposeTile(){if(tileSource){tileSource.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose();}})}materials=[];shaders=[];}
 function regenerate(){const started=performance.now();disposeTile();tileSource=new THREE.Group();tileSource.name='Grass_4m_Tile';const data=solidForms.has(FORM_MODES[state.formMode])?createSolidGeometry():createGeometry();let verts=0;
- const ground=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshStandardMaterial({color:groundColor,side:THREE.DoubleSide,roughness:1}));ground.rotation.x=-Math.PI/2;ground.name='Ground_4m';tileSource.add(ground);
+ const ground=new THREE.Mesh(new THREE.PlaneGeometry(4,4),new THREE.MeshStandardMaterial({color:groundColor,side:THREE.DoubleSide,roughness:1}));groundMaterial=ground.material;ground.rotation.x=-Math.PI/2;ground.name='Ground_4m';tileSource.add(ground);
  data.arrays.forEach((positions,i)=>{if(!positions.length)return;const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.computeVertexNormals();const grass=new THREE.Mesh(geometry,windMaterial(i));grass.name='Grass_Palette_'+i;grass.frustumCulled=false;tileSource.add(grass);verts+=positions.length/3;});
  paintMaterials();rebuildTiles();meshCount=data.blades;
  $('msg').textContent=`再生成完了｜${data.blades.toLocaleString()}本｜${data.triangles.toLocaleString()}面｜${((performance.now()-started)/1000).toFixed(1)}秒`;
 }
-function rebuildTiles(){tilesRoot.clear();if(!tileSource)return;const count=Math.round(state.tiles),offset=(count-1)/2;for(let z=0;z<count;z++)for(let x=0;x<count;x++){const t=tileSource.clone(true);t.position.set((x-offset)*4,0,(z-offset)*4);tilesRoot.add(t);}controls.target.set(0,.15,0);}
+const visibility={showDefault:true,showCustom:true,showGround:true};
+function applyVisibility(){
+  tilesRoot.traverse(o=>{
+    if(!o.isMesh)return;
+    o.visible=o.name==='Ground_4m'?visibility.showGround:visibility.showDefault;
+  });
+  particleGroup.visible=visibility.showCustom;
+  for(const key of Object.keys(visibility))$(key).checked=visibility[key];
+}
+for(const key of Object.keys(visibility))$(key).addEventListener('change',e=>{visibility[key]=e.target.checked;applyVisibility();});
+$('customOnly').addEventListener('click',()=>{Object.assign(visibility,{showDefault:false,showCustom:true,showGround:true});applyVisibility();});
+$('showAll').addEventListener('click',()=>{Object.assign(visibility,{showDefault:true,showCustom:true,showGround:true});applyVisibility();});
+function rebuildTiles(){tilesRoot.clear();if(!tileSource)return;const count=Math.round(state.tiles),offset=(count-1)/2;for(let z=0;z<count;z++)for(let x=0;x<count;x++){const t=tileSource.clone(true);t.position.set((x-offset)*4,0,(z-offset)*4);tilesRoot.add(t);}controls.target.set(0,.15,0);applyVisibility();}
 let pending=null;function scheduleRebuild(){clearTimeout(pending);$('msg').textContent='形状を更新中…';pending=setTimeout(regenerate,150);}
 for(const name of names){const el=$(name);if(!el)continue;el.addEventListener('input',()=>{state[name]=THREE.MathUtils.clamp(Number(el.value),...ranges[name]);updateLabels();if(['height','density','width','curve','variation','profile','tipRound','twist','cluster','formAmplitude','patternScale','patternSharpness','solidCount','solidScale','solidMotion'].includes(name))scheduleRebuild();else if(['hue','saturation','brightness','roughness','opacity','emission','gradient','reactiveGlow','paletteShift','paletteContrast','paletteFlow'].includes(name))paintMaterials();else if(name==='tiles')rebuildTiles();});}
 $('rebuild').addEventListener('click',regenerate);
@@ -334,18 +350,58 @@ $('windSeed').addEventListener('change', e => {state.windSeed = THREE.MathUtils.
 $('newWindSeed').addEventListener('click',()=>{state.windSeed=1+Math.floor(Math.random()*999999998);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();});
 $('restartWind').addEventListener('click',()=>{windStartTime=clock.getElapsedTime();});
 
-function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.5',tileSizeMeters:4,parameters:{...state},customPalette:[...customPalette],export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
+function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.6.2',tileSizeMeters:4,parameters:{...state},customPalette:[...customPalette],groundColor:'#'+groundColor.getHexString(),particleSettings:{...particleState},particleSource:importedName||null,visibility:{...visibility},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
 function download(data,name,type){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_5_palette_solid_form.json','application/json'));
-$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);
+$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_6_2_visibility.json','application/json'));
+$('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);if(o.visibility)for(const k of Object.keys(visibility))if(typeof o.visibility[k]==='boolean')visibility[k]=o.visibility[k];if(o.groundColor && /^#[0-9a-fA-F]{6}$/.test(o.groundColor))setGround(o.groundColor);if(o.particleSettings)for(const k of particleNames)if(Number.isFinite(o.particleSettings[k]))particleState[k]=o.particleSettings[k];particleUI();if(importedScene)rebuildParticles();
  if(Array.isArray(o.customPalette))for(let i=0;i<3;i++)if(/^#[0-9a-fA-F]{6}$/.test(o.customPalette[i]||''))customPalette[i]=o.customPalette[i];
  refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();}catch(error){$('msg').textContent='読込エラー: '+error.message;}e.target.value='';});
-$('reset').addEventListener('click',()=>{Object.assign(state,defaults);customPalette.splice(0,3,'#285be5','#ff9bc9','#f2d35d');refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();});
+$('reset').addEventListener('click',()=>{Object.assign(state,defaults);Object.assign(visibility,{showDefault:true,showCustom:true,showGround:true});setGround('#37692e');Object.assign(particleState,{count:300,scale:0.6,spread:4,height:0.2,motion:0.35,spin:0.45,seed:6314});particleUI();if(importedScene)rebuildParticles();customPalette.splice(0,3,'#285be5','#ff9bc9','#f2d35d');refreshColorInputs();$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateGenerativeMode();updatePaletteMode();updateLabels();regenerate();});
 $('exportGLB').addEventListener('click',async()=>{const button=$('exportGLB');button.disabled=true;$('msg').textContent='GLBを生成中…';try{
  // Export a separate, static scene, not the animated shader materials or tiled preview.
- const exportScene=new THREE.Group();exportScene.name='Grass_4m_Export';tileSource.children.forEach(child=>{if(!child.isMesh)return;const m=child.clone();m.geometry=child.geometry;m.material=child.material.clone();m.material.onBeforeCompile=THREE.Material.prototype.onBeforeCompile;m.material.customProgramCacheKey=()=>'';m.material.userData={};m.material.side=THREE.DoubleSide;exportScene.add(m);});
- const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_5_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
+ const exportScene=new THREE.Group();exportScene.name='Grass_4m_Export';tileSource.children.forEach(child=>{if(!child.isMesh)return;if(child.name==='Ground_4m'?!visibility.showGround:!visibility.showDefault)return;const m=child.clone();m.geometry=child.geometry;m.material=child.material.clone();m.material.onBeforeCompile=THREE.Material.prototype.onBeforeCompile;m.material.customProgramCacheKey=()=>'';m.material.userData={};m.material.side=THREE.DoubleSide;exportScene.add(m);});
+ for(const mesh of (visibility.showCustom?particleMeshes:[])){const clone=mesh.clone();clone.geometry=mesh.geometry;clone.material=mesh.material.clone();exportScene.add(clone);}
+ const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_6_2_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
  }catch(e){console.error(e);$('msg').textContent='GLB出力エラー: '+e.message;}finally{button.disabled=false;}});
+
+function setGround(hex){groundColor.set(hex);if(groundMaterial)groundMaterial.color.copy(groundColor);$('groundColor').value='#'+groundColor.getHexString();}
+$('groundColor').addEventListener('input',e=>setGround(e.target.value));
+const particleNames=['count','scale','spread','height','motion','spin'];
+function particleUI(){for(const key of particleNames){const el=$('particle'+key);el.value=particleState[key];const val=$('particle'+key+'Val');if(val)val.textContent=Number(particleState[key]).toFixed(key==='count'?0:2);}}
+particleUI();
+const dummy=new THREE.Object3D();
+function clearParticles(){for(const inst of particleMeshes){particleGroup.remove(inst);inst.geometry.dispose();inst.material.dispose();}particleMeshes=[];particleTransforms=[];}
+function rebuildParticles(){clearParticles();if(!importedScene)return;
+ importedScene.updateMatrixWorld(true);
+ const box=new THREE.Box3().setFromObject(importedScene);if(box.isEmpty())return;
+ const center=box.getCenter(new THREE.Vector3()), sz=box.getSize(new THREE.Vector3()), norm=1/Math.max(sz.x,sz.y,sz.z,1e-6);
+ const rng=randGen(particleState.seed),cnt=particleState.count;
+ for(let i=0;i<cnt;i++)particleTransforms.push({x:(rng()-.5)*particleState.spread,z:(rng()-.5)*particleState.spread,y:particleState.height+rng()*particleState.height,phase:rng()*Math.PI*2,rot:rng()*Math.PI*2,scale:particleState.scale*(0.65+rng()*0.7)});
+ const source=[]; importedScene.traverse(o=>{if(o.isMesh)source.push(o);});
+ for(const o of source){const geometry=o.geometry.clone();geometry.applyMatrix4(o.matrixWorld);geometry.translate(-center.x,-center.y,-center.z);geometry.scale(norm,norm,norm);
+  const mats=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
+  let mat=(mats[0]||new THREE.MeshStandardMaterial({color:0xffffff})).clone();mat.side=THREE.DoubleSide;
+  const inst=new THREE.InstancedMesh(geometry,mat,cnt);inst.frustumCulled=false;inst.name='CustomGLB_Particles';inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);particleGroup.add(inst);particleMeshes.push(inst);
+ }
+ updateParticles(0);applyVisibility();
+ $('msg').textContent=`独自GLB配置完了：${cnt}個 / ${particleMeshes.length}メッシュ種`;
+}
+function updateParticles(t){if(!particleMeshes.length)return;
+ for(let i=0;i<particleTransforms.length;i++){
+  const a=particleTransforms[i],m=particleState.motion;
+  dummy.position.set(a.x+Math.sin(t*0.7+a.phase)*m*.15,a.y+Math.sin(t*1.8+a.phase)*m*.28,a.z+Math.cos(t*.75+a.phase)*m*.15);
+  dummy.rotation.set(Math.sin(t*0.6+a.phase)*m*.12,a.rot+t*particleState.spin*.5,Math.cos(t*.8+a.phase)*m*.12);
+  dummy.scale.setScalar(a.scale);dummy.updateMatrix();for(const mesh of particleMeshes)mesh.setMatrixAt(i,dummy.matrix);
+ }
+ for(const mesh of particleMeshes)mesh.instanceMatrix.needsUpdate=true;
+}
+$('glbInput').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;
+ try{const url=URL.createObjectURL(file);try{const gltf=await new GLTFLoader().loadAsync(url);importedScene=gltf.scene;importedName=file.name;rebuildParticles();}finally{URL.revokeObjectURL(url);}}
+ catch(err){console.error(err);$('msg').textContent='GLB読込エラー：'+err.message;}e.target.value='';
+});
+for(const key of particleNames){$('particle'+key).addEventListener('input',e=>{particleState[key]=Number(e.target.value);particleUI();if(['count','scale','spread','height'].includes(key))rebuildParticles();});}
+$('particleClear').addEventListener('click',()=>{clearParticles();importedScene=null;importedName='';$('msg').textContent='独自GLBを解除しました';});
+
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 renderer.setAnimationLoop(()=>{
  const t=clock.getElapsedTime();
@@ -375,7 +431,7 @@ renderer.setAnimationLoop(()=>{
  $('liveDirection').textContent=stochastic.directionDegrees.toFixed(1);
  $('liveSpeed').textContent=stochastic.speedScale.toFixed(2);
  $('windTime').textContent=windElapsed.toFixed(1);
- controls.update();renderer.render(scene,camera);
+ updateParticles(windElapsed);controls.update();renderer.render(scene,camera);
 });
 async function toggleMicrophone(){
  if(micEnabled){
