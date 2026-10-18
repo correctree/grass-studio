@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 const $=id=>document.getElementById(id);
-const state={height:1,density:1,width:1,curve:0.5,variation:0.5,hue:0,saturation:1,brightness:1,roughness:.96,wind:.18,speed:1,direction:35,gust:0.35,turbulence:0.35,waveScale:1.0,audioGain:0,windColor:0.3,tiles:1,seed:20261017,directionVariation:45,speedVariation:35,changeInterval:6,smoothness:80,windSeed:16101,profile:0.65,tipRound:0,twist:0,cluster:0,opacity:1,emission:0,gradient:0.25,reactiveGlow:0.3,creativeMode:0};
+const state={height:1,density:1,width:1,curve:0.5,variation:0.5,hue:0,saturation:1,brightness:1,roughness:.96,wind:.18,speed:1,direction:35,gust:0.35,turbulence:0.35,waveScale:1.0,audioGain:0,windColor:0.3,tiles:1,seed:20261017,directionVariation:45,speedVariation:35,changeInterval:6,smoothness:80,windSeed:16101,profile:0.65,tipRound:0,twist:0,cluster:0,opacity:1,emission:0,gradient:0.25,reactiveGlow:0.3,creativeMode:0,dynamicBend:0.35,audioMorph:0.50,morphFrequency:1.0,colorPulse:0.25};
 const defaults={...state};
-const ranges={height:[.45,2.3],density:[.1,1],width:[.4,2.5],curve:[0,1],variation:[0,1],hue:[-150,150],saturation:[0,2],brightness:[.3,1.7],roughness:[.2,1],wind:[0,.6],speed:[0,3],direction:[0,360],gust:[0,1],turbulence:[0,1],waveScale:[0.2,3],audioGain:[0,2],windColor:[0,1],tiles:[1,9],seed:[1,999999999],directionVariation:[0,180],speedVariation:[0,100],changeInterval:[1,30],smoothness:[0,100],windSeed:[1,999999999],profile:[0,1],tipRound:[0,1],twist:[0,1],cluster:[0,1],opacity:[0.35,1],emission:[0,2],gradient:[0,1],reactiveGlow:[0,1],creativeMode:[0,1]};
+const ranges={height:[.45,2.3],density:[.1,1],width:[.4,2.5],curve:[0,1],variation:[0,1],hue:[-150,150],saturation:[0,2],brightness:[.3,1.7],roughness:[.2,1],wind:[0,.6],speed:[0,3],direction:[0,360],gust:[0,1],turbulence:[0,1],waveScale:[0.2,3],audioGain:[0,2],windColor:[0,1],tiles:[1,9],seed:[1,999999999],directionVariation:[0,180],speedVariation:[0,100],changeInterval:[1,30],smoothness:[0,100],windSeed:[1,999999999],profile:[0,1],tipRound:[0,1],twist:[0,1],cluster:[0,1],opacity:[0.35,1],emission:[0,2],gradient:[0,1],reactiveGlow:[0,1],creativeMode:[0,1],dynamicBend:[0,1.5],audioMorph:[0,1.5],morphFrequency:[0.1,4],colorPulse:[0,1]};
 const names=Object.keys(state).filter(k=>!['seed','windSeed','creativeMode'].includes(k));
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;$('app').appendChild(renderer.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0xb9d8ff);scene.fog=new THREE.Fog(0xb9d8ff,15,65);
@@ -58,11 +58,13 @@ function windMaterial(i){
    uTime:{value:0},uWind:{value:state.wind},uSpeed:{value:state.speed},
    uDirection:{value:state.direction*Math.PI/180},uGust:{value:state.gust},
    uTurbulence:{value:state.turbulence},uWaveScale:{value:state.waveScale},
-   uAudio:{value:0},uColorReact:{value:state.windColor},uGradient:{value:state.gradient},uReactGlow:{value:state.reactiveGlow},uEmission:{value:state.emission}
+   uAudio:{value:0},uDynamicBend:{value:state.dynamicBend},uAudioMorph:{value:state.audioMorph},uMorphFrequency:{value:state.morphFrequency},uColorPulse:{value:state.colorPulse},uColorReact:{value:state.windColor},uGradient:{value:state.gradient},uReactGlow:{value:state.reactiveGlow},uEmission:{value:state.emission}
   });
   m.userData.shader=shader;shaders.push(shader);
   shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
   uniform float uTime,uWind,uSpeed,uDirection,uGust,uTurbulence,uWaveScale,uAudio,uColorReact;
+  uniform float uDynamicBend,uAudioMorph,uMorphFrequency,uColorPulse;
+  varying float vDynamicExpression;
   varying float vWindExpression;
   varying float vBladeHeight;
   `).replace('#include <begin_vertex>',`#include <begin_vertex>
@@ -81,21 +83,33 @@ function windMaterial(i){
   // Bending follows wind direction; roots stay fixed.
   transformed.x+=axis.x*strength*oscillation*weight;
   transformed.z+=axis.y*strength*oscillation*weight;
+  // v1.6.3: animate the blade silhouette, not only its rigid swaying.
+  // The roots remain fixed while upper parts curl and widen rhythmically.
+  float motionPhase = elapsed*uMorphFrequency*2.1 + dot(worldXZ,vec2(3.7,5.3));
+  float dynamicPulse = sin(motionPhase)*0.5+0.5;
+  float morph = (uDynamicBend*dynamicPulse + uAudioMorph*uAudio*3.0);
+  vec2 sideAxis=vec2(-axis.y,axis.x);
+  transformed.xz += sideAxis * (0.025*morph*weight*sin(motionPhase+position.y*8.0));
+  transformed.y += 0.018*morph*weight*sin(motionPhase*0.75+position.y*9.0);
+  vDynamicExpression = clamp(morph*0.5 + uColorPulse*dynamicPulse,0.0,1.0);
   vWindExpression=clamp(abs(oscillation)*strength*4.0,0.0,1.0);
   vBladeHeight=clamp(position.y/0.16,0.,1.);
   `);
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
   varying float vWindExpression;
-  uniform float uColorReact,uGradient,uReactGlow,uEmission;
+  uniform float uColorReact,uGradient,uReactGlow,uEmission,uColorPulse;
+  varying float vDynamicExpression;
   varying float vBladeHeight;
   `).replace('#include <color_fragment>',`#include <color_fragment>
   // Expressive mapping: stronger wind produces brighter / warmer highlights.
   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.73,0.92,0.46),vWindExpression*uColorReact*0.55);
   diffuseColor.rgb *= mix(0.7+0.3*vBladeHeight,1.0,uGradient);
   diffuseColor.rgb += vec3(0.1,0.28,0.07)*vWindExpression*uReactGlow*0.5;
+  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.30,0.75,0.93),
+                       vDynamicExpression*uColorPulse*0.45);
   `);
  };
- m.customProgramCacheKey=()=> 'grass-162-shape-material';
+ m.customProgramCacheKey=()=> 'grass-163-dynamic-expression';
  materials.push(m);return m;
 }
 // Clip leaf polygons exactly at +/-2m so repeated tiles share a periodic boundary.
@@ -183,15 +197,15 @@ $('windSeed').addEventListener('change', e => {state.windSeed = THREE.MathUtils.
 $('newWindSeed').addEventListener('click',()=>{state.windSeed=1+Math.floor(Math.random()*999999998);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();});
 $('restartWind').addEventListener('click',()=>{windStartTime=clock.getElapsedTime();});
 
-function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.2',tileSizeMeters:4,parameters:{...state},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
+function preset(){return {format:'nature-studio-preset',version:1,type:'grass',appVersion:'1.6.3',tileSizeMeters:4,parameters:{...state},export:{mesh:'static-glb',behavior:'json',dynamicAnimationInGLB:false}};}
 function download(data,name,type){const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_2_shape_material.json','application/json'));
+$('save').addEventListener('click',()=>download(JSON.stringify(preset(),null,2),'grass_studio_v1_6_3_dynamic_expression.json','application/json'));
 $('load').addEventListener('change',async e=>{try{const o=JSON.parse(await e.target.files[0].text());if(o.format!=='nature-studio-preset'||o.type!=='grass')throw Error('対応していないJSON');for(const [k,v] of Object.entries(o.parameters||{}))if(k in state&&typeof v==='number'&&Number.isFinite(v))state[k]=THREE.MathUtils.clamp(v,...ranges[k]);state.tiles=Math.round(state.tiles);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateLabels();regenerate();}catch(error){$('msg').textContent='読込エラー: '+error.message;}e.target.value='';});
 $('reset').addEventListener('click',()=>{Object.assign(state,defaults);$('windSeed').value=state.windSeed;windStartTime=clock.getElapsedTime();updateMode();updateLabels();regenerate();});
 $('exportGLB').addEventListener('click',async()=>{const button=$('exportGLB');button.disabled=true;$('msg').textContent='GLBを生成中…';try{
  // Export a separate, static scene, not the animated shader materials or tiled preview.
  const exportScene=new THREE.Group();exportScene.name='Grass_4m_Export';tileSource.children.forEach(child=>{if(!child.isMesh)return;const m=child.clone();m.geometry=child.geometry;m.material=child.material.clone();m.material.onBeforeCompile=THREE.Material.prototype.onBeforeCompile;m.material.customProgramCacheKey=()=>'';m.material.userData={};m.material.side=THREE.DoubleSide;exportScene.add(m);});
- const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_2_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
+ const output=await new GLTFExporter().parseAsync(exportScene,{binary:true,onlyVisible:true,trs:false});download(output,'grass_studio_v1_6_3_static.glb','model/gltf-binary');exportScene.traverse(o=>{if(o.isMesh)o.material.dispose();});$('msg').textContent='GLB保存完了（静止形状・基本材質。動的変化はJSONで保存）';
  }catch(e){console.error(e);$('msg').textContent='GLB出力エラー: '+e.message;}finally{button.disabled=false;}});
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 renderer.setAnimationLoop(()=>{
@@ -210,6 +224,10 @@ renderer.setAnimationLoop(()=>{
   shader.uniforms.uGust.value=state.gust;shader.uniforms.uTurbulence.value=state.turbulence;
   shader.uniforms.uWaveScale.value=state.waveScale;
   shader.uniforms.uAudio.value=Math.min(0.55,audioLevel*state.audioGain*2.5);
+  shader.uniforms.uDynamicBend.value=state.dynamicBend;
+  shader.uniforms.uAudioMorph.value=state.audioMorph;
+  shader.uniforms.uMorphFrequency.value=state.morphFrequency;
+  shader.uniforms.uColorPulse.value=state.colorPulse;
   shader.uniforms.uColorReact.value=state.windColor;
   shader.uniforms.uGradient.value=state.gradient;shader.uniforms.uReactGlow.value=state.reactiveGlow;shader.uniforms.uEmission.value=state.emission;
  }
